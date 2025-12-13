@@ -403,7 +403,7 @@ export type CompactionPart = {
   sessionID: string
   messageID: string
   type: "compaction"
-  auto: boolean
+  trigger: "overflow" | "user" | "model"
 }
 
 export type Part =
@@ -568,6 +568,11 @@ export type Session = {
   }
   share?: {
     url: string
+  }
+  handoff?: {
+    prompt: string
+    createdAt: number
+    trigger: "overflow" | "user" | "model"
   }
   title: string
   version: string
@@ -1483,6 +1488,23 @@ export type Config = {
      * Enterprise URL
      */
     url?: string
+  }
+  /**
+   * Configuration for context compaction
+   */
+  compaction?: {
+    /**
+     * Model to use for compaction in the format of provider/model
+     */
+    model?: string
+    /**
+     * Custom system prompt for compaction
+     */
+    system_prompt?: string
+    /**
+     * Custom user prompt for compaction
+     */
+    user_prompt?: string
   }
   experimental?: {
     hook?: {

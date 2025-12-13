@@ -1,6 +1,6 @@
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
-import { wrapLanguageModel, type ModelMessage } from "ai"
+import { generateObject, type ModelMessage } from "ai"
 import { Session } from "."
 import { Identifier } from "../id/id"
 import { Instance } from "../project/instance"
@@ -14,7 +14,6 @@ import { Token } from "../util/token"
 import { Config } from "../config/config"
 import { Log } from "../util/log"
 import { ProviderTransform } from "@/provider/transform"
-import { SessionProcessor } from "./processor"
 import { fn } from "@/util/fn"
 import { mergeDeep, pipe } from "remeda"
 
@@ -86,6 +85,11 @@ export namespace SessionCompaction {
     }
   }
 
+  const CompactionSchema = z.object({
+    summary: z.string().describe("What was done, files modified, key decisions, user constraints"),
+    continue: z.string().describe("Specific next steps, context for continuation, pending tasks, relevant files"),
+  })
+
   export async function process(input: {
     parentID: string
     messages: MessageV2.WithParts[]
@@ -96,12 +100,26 @@ export namespace SessionCompaction {
     }
     agent: string
     abort: AbortSignal
-    auto: boolean
+    trigger: MessageV2.CompactionTrigger
   }) {
     const cfg = await Config.get()
-    const model = await Provider.getModel(input.model.providerID, input.model.modelID)
+
+    // Use configured compaction model if specified, otherwise use the input model
+    const compactionConfig = cfg.compaction
+    let modelInfo = input.model
+    if (compactionConfig?.model) {
+      const [providerID, modelID] = compactionConfig.model.split("/")
+      if (providerID && modelID) {
+        modelInfo = { providerID, modelID }
+      }
+    }
+
+    const model = await Provider.getModel(modelInfo.providerID, modelInfo.modelID)
     const language = await Provider.getLanguage(model)
-    const system = [...SystemPrompt.compaction(model.providerID)]
+    const system = SystemPrompt.compaction(model.providerID, compactionConfig?.system_prompt)
+    const userPrompt =
+      compactionConfig?.user_prompt ?? "Summarize the conversation and create a handoff for continuing work."
+
     const msg = (await Session.updateMessage({
       id: Identifier.ascending("message"),
       role: "assistant",
@@ -120,114 +138,126 @@ export namespace SessionCompaction {
         reasoning: 0,
         cache: { read: 0, write: 0 },
       },
-      modelID: input.model.modelID,
+      modelID: modelInfo.modelID,
       providerID: model.providerID,
       time: {
         created: Date.now(),
       },
     })) as MessageV2.Assistant
-    const processor = SessionProcessor.create({
-      assistantMessage: msg,
-      sessionID: input.sessionID,
-      model: model,
-      abort: input.abort,
-    })
-    const result = await processor.process({
-      onError(error) {
-        log.error("stream error", {
-          error,
-        })
-      },
-      // set to 0, we handle loop
-      maxRetries: 0,
-      providerOptions: ProviderTransform.providerOptions(
-        model,
-        pipe({}, mergeDeep(ProviderTransform.options(model, input.sessionID)), mergeDeep(model.options)),
-      ),
-      headers: model.headers,
-      abortSignal: input.abort,
-      tools: model.capabilities.toolcall ? {} : undefined,
-      messages: [
-        ...system.map(
-          (x): ModelMessage => ({
-            role: "system",
-            content: x,
-          }),
-        ),
-        ...MessageV2.toModelMessage(
-          input.messages.filter((m) => {
-            if (m.info.role !== "assistant" || m.info.error === undefined) {
-              return true
-            }
-            if (
-              MessageV2.AbortedError.isInstance(m.info.error) &&
-              m.parts.some((part) => part.type !== "step-start" && part.type !== "reasoning")
-            ) {
-              return true
-            }
 
-            return false
-          }),
-        ),
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Provide a detailed prompt for continuing our conversation above. Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next considering new session will not have access to our conversation.",
-            },
-          ],
-        },
-      ],
-      model: wrapLanguageModel({
-        model: language,
-        middleware: [
-          {
-            async transformParams(args) {
-              if (args.type === "stream") {
-                // @ts-expect-error
-                args.params.prompt = ProviderTransform.message(args.params.prompt, model)
+    const options = pipe({}, mergeDeep(ProviderTransform.options(model, input.sessionID)), mergeDeep(model.options))
+
+    try {
+      const result = await generateObject({
+        schema: CompactionSchema,
+        providerOptions: ProviderTransform.providerOptions(model, options),
+        headers: model.headers,
+        abortSignal: input.abort,
+        messages: [
+          ...system.map(
+            (x): ModelMessage => ({
+              role: "system",
+              content: x,
+            }),
+          ),
+          ...MessageV2.toModelMessage(
+            input.messages.filter((m) => {
+              if (m.info.role !== "assistant" || m.info.error === undefined) {
+                return true
               }
-              return args.params
-            },
+              if (
+                MessageV2.AbortedError.isInstance(m.info.error) &&
+                m.parts.some((part) => part.type !== "step-start" && part.type !== "reasoning")
+              ) {
+                return true
+              }
+              return false
+            }),
+          ),
+          {
+            role: "user",
+            content: userPrompt,
           },
         ],
-      }),
-      experimental_telemetry: {
-        isEnabled: cfg.experimental?.openTelemetry,
-        metadata: {
-          userId: cfg.username ?? "unknown",
-          sessionId: input.sessionID,
+        model: language,
+        experimental_telemetry: {
+          isEnabled: cfg.experimental?.openTelemetry,
+          metadata: {
+            userId: cfg.username ?? "unknown",
+            sessionId: input.sessionID,
+          },
         },
-      },
-    })
-    if (result === "continue" && input.auto) {
-      const continueMsg = await Session.updateMessage({
-        id: Identifier.ascending("message"),
-        role: "user",
-        sessionID: input.sessionID,
-        time: {
-          created: Date.now(),
-        },
-        agent: input.agent,
-        model: input.model,
       })
+
+      const usage = Session.getUsage({
+        model,
+        usage: result.usage,
+        metadata: result.providerMetadata,
+      })
+      msg.cost = usage.cost
+      msg.tokens = usage.tokens
+      msg.time.completed = Date.now()
+      await Session.updateMessage(msg)
+
+      // Create text part for UI display
+      const displayText = `## Summary\n${result.object.summary}\n\n## Continue\n${result.object.continue}`
       await Session.updatePart({
         id: Identifier.ascending("part"),
-        messageID: continueMsg.id,
+        messageID: msg.id,
         sessionID: input.sessionID,
         type: "text",
-        synthetic: true,
-        text: "Continue if you have next steps",
+        text: displayText,
         time: {
-          start: Date.now(),
+          start: msg.time.created,
           end: Date.now(),
         },
       })
+
+      // Store handoff prompt in session
+      await Session.update(input.sessionID, (draft) => {
+        draft.handoff = {
+          prompt: result.object.continue,
+          createdAt: Date.now(),
+          trigger: input.trigger,
+        }
+      })
+
+      // For non-user triggers, inject continuation as synthetic user message
+      if (input.trigger !== "user") {
+        const continueMsg = await Session.updateMessage({
+          id: Identifier.ascending("message"),
+          role: "user",
+          sessionID: input.sessionID,
+          time: {
+            created: Date.now(),
+          },
+          agent: input.agent,
+          model: input.model,
+        })
+        await Session.updatePart({
+          id: Identifier.ascending("part"),
+          messageID: continueMsg.id,
+          sessionID: input.sessionID,
+          type: "text",
+          synthetic: true,
+          text: result.object.continue,
+          time: {
+            start: Date.now(),
+            end: Date.now(),
+          },
+        })
+      }
+
+      Bus.publish(Event.Compacted, { sessionID: input.sessionID })
+      return "continue"
+    } catch (e) {
+      log.error("compaction error", { error: e })
+      const error = MessageV2.fromError(e, { providerID: model.providerID })
+      msg.error = error
+      msg.time.completed = Date.now()
+      await Session.updateMessage(msg)
+      return "stop"
     }
-    if (processor.message.error) return "stop"
-    Bus.publish(Event.Compacted, { sessionID: input.sessionID })
-    return "continue"
   }
 
   export const create = fn(
@@ -238,7 +268,7 @@ export namespace SessionCompaction {
         providerID: z.string(),
         modelID: z.string(),
       }),
-      auto: z.boolean(),
+      trigger: MessageV2.CompactionTrigger,
     }),
     async (input) => {
       const msg = await Session.updateMessage({
@@ -256,7 +286,7 @@ export namespace SessionCompaction {
         messageID: msg.id,
         sessionID: msg.sessionID,
         type: "compaction",
-        auto: input.auto,
+        trigger: input.trigger,
       })
     },
   )

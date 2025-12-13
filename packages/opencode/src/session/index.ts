@@ -54,6 +54,13 @@ export namespace Session {
           url: z.string(),
         })
         .optional(),
+      handoff: z
+        .object({
+          prompt: z.string(),
+          createdAt: z.number(),
+          trigger: MessageV2.CompactionTrigger,
+        })
+        .optional(),
       title: z.string(),
       version: z.string(),
       time: z.object({

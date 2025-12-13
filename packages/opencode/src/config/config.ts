@@ -748,6 +748,14 @@ export namespace Config {
           url: z.string().optional().describe("Enterprise URL"),
         })
         .optional(),
+      compaction: z
+        .object({
+          model: z.string().optional().describe("Model to use for compaction in the format of provider/model"),
+          system_prompt: z.string().optional().describe("Custom system prompt for compaction"),
+          user_prompt: z.string().optional().describe("Custom user prompt for compaction"),
+        })
+        .optional()
+        .describe("Configuration for context compaction"),
       experimental: z
         .object({
           hook: z

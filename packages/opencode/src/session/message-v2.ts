@@ -147,9 +147,12 @@ export namespace MessageV2 {
   })
   export type AgentPart = z.infer<typeof AgentPart>
 
+  export const CompactionTrigger = z.enum(["overflow", "user", "model"])
+  export type CompactionTrigger = z.infer<typeof CompactionTrigger>
+
   export const CompactionPart = PartBase.extend({
     type: z.literal("compaction"),
-    auto: z.boolean(),
+    trigger: CompactionTrigger,
   }).meta({
     ref: "CompactionPart",
   })
