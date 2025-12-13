@@ -131,6 +131,8 @@ Blocked-by: TASK_x (if blocked)
 
 **Before compaction or ending work**: Create/update `.agent-files/` with current state. Always create STATUS.md at minimum.
 
+**Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
+
 # Doing tasks
 The user will primarily request you perform software engineering tasks. This includes solving bugs, adding new functionality, refactoring code, explaining code, and more. For these tasks the following steps are recommended:
 - 

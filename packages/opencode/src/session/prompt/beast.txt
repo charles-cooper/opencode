@@ -139,6 +139,8 @@ Blocked-by: TASK_x (if blocked)
 
 **Before compaction or ending work**: Create/update `.agent-files/` with current state. Always create STATUS.md at minimum.
 
+**Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
+
 ## 6. Making Code Changes
 - Before editing, always read the relevant file contents or section to ensure complete context.
 - Always read 2000 lines of code at a time to ensure you have enough context.
