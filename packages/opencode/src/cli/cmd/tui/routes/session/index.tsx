@@ -58,6 +58,7 @@ import { Sidebar } from "./sidebar"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
 import parsers from "../../../../../../parsers-config.ts"
 import { Clipboard } from "../../util/clipboard"
+import "opentui-spinner/solid"
 import { Toast, useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv.tsx"
 import { Editor } from "../../util/editor"
@@ -917,22 +918,36 @@ export function Session() {
                       <></>
                     </Match>
                     <Match when={message.role === "user"}>
-                      <UserMessage
-                        index={index()}
-                        onMouseUp={() => {
-                          if (renderer.getSelection()?.getSelectedText()) return
-                          dialog.replace(() => (
-                            <DialogMessage
-                              messageID={message.id}
-                              sessionID={route.sessionID}
-                              setPrompt={(promptInfo) => prompt.set(promptInfo)}
-                            />
-                          ))
-                        }}
-                        message={message as UserMessage}
-                        parts={sync.data.part[message.id] ?? []}
-                        pending={pending()}
-                      />
+                      {(() => {
+                        const parts = sync.data.part[message.id] ?? []
+                        const hasCompaction = parts.some((p) => p.type === "compaction")
+                        const isCompacting = createMemo(() => {
+                          if (!hasCompaction) return false
+                          const nextMsg = messages().find(
+                            (m) => m.role === "assistant" && m.parentID === message.id,
+                          ) as AssistantMessage | undefined
+                          return !nextMsg || !nextMsg.time.completed
+                        })
+                        return (
+                          <UserMessage
+                            index={index()}
+                            onMouseUp={() => {
+                              if (renderer.getSelection()?.getSelectedText()) return
+                              dialog.replace(() => (
+                                <DialogMessage
+                                  messageID={message.id}
+                                  sessionID={route.sessionID}
+                                  setPrompt={(promptInfo) => prompt.set(promptInfo)}
+                                />
+                              ))
+                            }}
+                            message={message as UserMessage}
+                            parts={parts}
+                            pending={pending()}
+                            isCompacting={isCompacting()}
+                          />
+                        )
+                      })()}
                     </Match>
                     <Match when={message.role === "assistant"}>
                       <AssistantMessage
@@ -988,6 +1003,7 @@ function UserMessage(props: {
   onMouseUp: () => void
   index: number
   pending?: string
+  isCompacting?: boolean
 }) {
   const ctx = use()
   const local = useLocal()
@@ -1000,6 +1016,7 @@ function UserMessage(props: {
   const color = createMemo(() => (queued() ? theme.accent : local.agent.color(props.message.agent)))
 
   const compaction = createMemo(() => props.parts.find((x) => x.type === "compaction"))
+  const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
   return (
     <>
@@ -1066,13 +1083,25 @@ function UserMessage(props: {
         </box>
       </Show>
       <Show when={compaction() && compaction()?.trigger !== "model"}>
-        <box
-          marginTop={1}
-          border={["top"]}
-          title=" Compaction "
-          titleAlignment="center"
-          borderColor={theme.borderActive}
-        />
+        <Show
+          when={props.isCompacting}
+          fallback={
+            <box
+              marginTop={1}
+              border={["top"]}
+              title=" Compaction "
+              titleAlignment="center"
+              borderColor={theme.borderActive}
+            />
+          }
+        >
+          <box marginTop={1} border={["top"]} titleAlignment="center" borderColor={theme.borderActive}>
+            <box flexDirection="row" gap={1} justifyContent="center" paddingTop={1} paddingBottom={1}>
+              <spinner frames={spinnerFrames} interval={80} color={theme.borderActive} />
+              <text fg={theme.textMuted}>Auto-optimizing context...</text>
+            </box>
+          </box>
+        </Show>
       </Show>
     </>
   )
