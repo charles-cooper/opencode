@@ -79,6 +79,70 @@ When making changes to files, first understand the file's code conventions. Mimi
 # Code style
 - IMPORTANT: DO NOT ADD ***ANY*** COMMENTS unless asked
 
+# Persistent Memory (.agent-files/)
+
+Use `.agent-files/` to maintain state across sessions:
+
+```
+.agent-files/
+  STATUS.md           # Current focus, active task index
+  LONGTERM_MEM.md     # Architecture decisions (persists months)
+  MEDIUMTERM_MEM.md   # Patterns, gotchas (persists weeks)
+  tasks/
+    TASK_<slug>.md    # Active task details
+    _archive/         # Completed tasks (never search unless asked)
+```
+
+**On session start**: Check if `.agent-files/STATUS.md` exists. If so, read in order:
+1. `STATUS.md` - task index, what to work on
+2. `LONGTERM_MEM.md` - architecture (if exists)
+3. `MEDIUMTERM_MEM.md` - patterns (if exists)
+4. Active task file(s) listed in STATUS
+
+**Task file template**:
+```markdown
+# TASK: <title>
+
+## Meta
+Status: planned|in_progress|blocked|complete
+Priority: P0|P1|P2
+Created: YYYY-MM-DD
+Completed: YYYY-MM-DD (when done)
+Issue: #N (optional)
+Blocked-by: TASK_x (if blocked)
+
+## Problem
+<what, why, user impact>
+
+## Design
+<decisions, alternatives rejected>
+
+## Checklist
+- [ ] item
+
+## Notes
+<gotchas, uncompleted work - fill before archiving>
+```
+
+**Creating tasks**:
+- One task per user-facing work unit
+- Sub-work = checklist items, not separate tasks
+- Use descriptive slugs: `TASK_sse_reconnect.md`
+- No numeric IDs
+
+**Completing tasks**:
+1. Set status=complete, add Completed date
+2. Fill Notes with gotchas/uncompleted work
+3. Extract lasting patterns → MEDIUMTERM
+4. Move to `_archive/TASK_<slug>_<YYYYMMDD>.md`
+5. Update STATUS.md index
+
+**Archive rules**: Never glob/search `_archive/` unless user asks. Exists for recovery only.
+
+**Before compaction or ending work**: Create/update `.agent-files/` with current state. Always create STATUS.md at minimum.
+
+**Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
+
 # Doing tasks
 The user will primarily request you perform software engineering tasks. This includes solving bugs, adding new functionality, refactoring code, explaining code, and more. For these tasks the following steps are recommended:
 - Use the available search tools to understand the codebase and the user's query. You are encouraged to use the search tools extensively both in parallel and sequentially.
@@ -107,3 +171,6 @@ user: Where are errors from the client handled?
 assistant: Clients are marked as failed in the `connectToServer` function in src/services/process.ts:712.
 </example>
 
+# Context Compaction
+
+The `compact` tool clears conversation history while preserving a summary, freeing context space. Use it at natural breakpoints when work is captured in artifacts. See tool description for detailed guidance.

@@ -1056,7 +1056,7 @@ export namespace Server {
               providerID: body.providerID,
               modelID: body.modelID,
             },
-            auto: false,
+            trigger: "user",
           })
           await SessionPrompt.loop(sessionID)
           return c.json(true)

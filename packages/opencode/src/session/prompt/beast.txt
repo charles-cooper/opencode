@@ -78,6 +78,69 @@ Carefully read the issue and think hard about a plan to solve it before coding.
 - Each time you check off a step, display the updated todo list to the user.
 - Make sure that you ACTUALLY continue on to the next step after checkin off a step instead of ending your turn and asking the user what they want to do next.
 
+## 5.1 Persistent Memory (.agent-files/)
+Use `.agent-files/` to maintain state across sessions:
+
+```
+.agent-files/
+  STATUS.md           # Current focus, active task index
+  LONGTERM_MEM.md     # Architecture decisions (persists months)
+  MEDIUMTERM_MEM.md   # Patterns, gotchas (persists weeks)
+  tasks/
+    TASK_<slug>.md    # Active task details
+    _archive/         # Completed tasks (never search unless asked)
+```
+
+**On session start**: Check if `.agent-files/STATUS.md` exists. If so, read in order:
+1. `STATUS.md` - task index, what to work on
+2. `LONGTERM_MEM.md` - architecture (if exists)
+3. `MEDIUMTERM_MEM.md` - patterns (if exists)
+4. Active task file(s) listed in STATUS
+
+**Task file template**:
+```markdown
+# TASK: <title>
+
+## Meta
+Status: planned|in_progress|blocked|complete
+Priority: P0|P1|P2
+Created: YYYY-MM-DD
+Completed: YYYY-MM-DD (when done)
+Issue: #N (optional)
+Blocked-by: TASK_x (if blocked)
+
+## Problem
+<what, why, user impact>
+
+## Design
+<decisions, alternatives rejected>
+
+## Checklist
+- [ ] item
+
+## Notes
+<gotchas, uncompleted work - fill before archiving>
+```
+
+**Creating tasks**:
+- One task per user-facing work unit
+- Sub-work = checklist items, not separate tasks
+- Use descriptive slugs: `TASK_sse_reconnect.md`
+- No numeric IDs
+
+**Completing tasks**:
+1. Set status=complete, add Completed date
+2. Fill Notes with gotchas/uncompleted work
+3. Extract lasting patterns → MEDIUMTERM
+4. Move to `_archive/TASK_<slug>_<YYYYMMDD>.md`
+5. Update STATUS.md index
+
+**Archive rules**: Never glob/search `_archive/` unless user asks. Exists for recovery only.
+
+**Before compaction or ending work**: Create/update `.agent-files/` with current state. Always create STATUS.md at minimum.
+
+**Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
+
 ## 6. Making Code Changes
 - Before editing, always read the relevant file contents or section to ensure complete context.
 - Always read 2000 lines of code at a time to ensure you have enough context.
@@ -145,3 +208,7 @@ Remember that todo lists must always be written in markdown format and must alwa
 If the user tells you to stage and commit, you may do so. 
 
 You are NEVER allowed to stage and commit files automatically.
+
+# Context Compaction
+
+The `compact` tool clears conversation history while preserving a summary, freeing context space. Use it at natural breakpoints when work is captured in artifacts. See tool description for detailed guidance.

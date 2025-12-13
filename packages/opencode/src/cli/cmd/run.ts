@@ -121,7 +121,7 @@ export const RunCommand = cmd({
 
     if (!process.stdin.isTTY) message += "\n" + (await Bun.stdin.text())
 
-    if (message.trim().length === 0 && !args.command) {
+    if (message.trim().length === 0 && !args.command && !args.continue) {
       UI.error("You must provide a message or a command")
       process.exit(1)
     }
@@ -246,10 +246,21 @@ export const RunCommand = cmd({
     if (args.attach) {
       const sdk = createOpencodeClient({ baseUrl: args.attach })
 
+      // Track if we should use handoff prompt
+      let handoffPrompt: string | undefined
+
       const sessionID = await (async () => {
         if (args.continue) {
           const result = await sdk.session.list()
-          return result.data?.find((s) => !s.parentID)?.id
+          const session = result.data?.find((s) => !s.parentID)
+          // Check if session has a handoff prompt and no explicit message was provided
+          if (session && message.trim().length === 0 && !args.command) {
+            const sessionDetails = await sdk.session.get({ sessionID: session.id })
+            if (sessionDetails.data?.handoff?.prompt) {
+              handoffPrompt = sessionDetails.data.handoff.prompt
+            }
+          }
+          return session?.id
         }
         if (args.session) return args.session
 
@@ -264,8 +275,19 @@ export const RunCommand = cmd({
         return result.data?.id
       })()
 
+      // Use handoff prompt if available and no message provided
+      if (handoffPrompt && message.trim().length === 0 && !args.command) {
+        message = handoffPrompt
+      }
+
       if (!sessionID) {
         UI.error("Session not found")
+        process.exit(1)
+      }
+
+      // Error if continuing with no message and no handoff prompt
+      if (args.continue && message.trim().length === 0 && !args.command) {
+        UI.error("No handoff prompt available. Provide a message to continue the session.")
         process.exit(1)
       }
 
@@ -298,10 +320,21 @@ export const RunCommand = cmd({
         }
       }
 
+      // Track if we should use handoff prompt
+      let handoffPrompt: string | undefined
+
       const sessionID = await (async () => {
         if (args.continue) {
           const result = await sdk.session.list()
-          return result.data?.find((s) => !s.parentID)?.id
+          const session = result.data?.find((s) => !s.parentID)
+          // Check if session has a handoff prompt and no explicit message was provided
+          if (session && message.trim().length === 0 && !args.command) {
+            const sessionDetails = await sdk.session.get({ sessionID: session.id })
+            if (sessionDetails.data?.handoff?.prompt) {
+              handoffPrompt = sessionDetails.data.handoff.prompt
+            }
+          }
+          return session?.id
         }
         if (args.session) return args.session
 
@@ -316,9 +349,21 @@ export const RunCommand = cmd({
         return result.data?.id
       })()
 
+      // Use handoff prompt if available and no message provided
+      if (handoffPrompt && message.trim().length === 0 && !args.command) {
+        message = handoffPrompt
+      }
+
       if (!sessionID) {
         server.stop()
         UI.error("Session not found")
+        process.exit(1)
+      }
+
+      // Error if continuing with no message and no handoff prompt
+      if (args.continue && message.trim().length === 0 && !args.command) {
+        server.stop()
+        UI.error("No handoff prompt available. Provide a message to continue the session.")
         process.exit(1)
       }
 

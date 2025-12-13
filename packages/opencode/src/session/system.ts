@@ -119,12 +119,13 @@ export namespace SystemPrompt {
     return Promise.all(found).then((result) => result.filter(Boolean))
   }
 
-  export function compaction(providerID: string) {
+  export function compaction(providerID: string, customPrompt?: string) {
+    const prompt = customPrompt ?? PROMPT_COMPACTION
     switch (providerID) {
       case "anthropic":
-        return [PROMPT_ANTHROPIC_SPOOF.trim(), PROMPT_COMPACTION]
+        return [PROMPT_ANTHROPIC_SPOOF.trim(), prompt]
       default:
-        return [PROMPT_COMPACTION]
+        return [prompt]
     }
   }
 

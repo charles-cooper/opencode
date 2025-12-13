@@ -1065,7 +1065,7 @@ function UserMessage(props: {
           </box>
         </box>
       </Show>
-      <Show when={compaction()}>
+      <Show when={compaction() && compaction()?.trigger !== "model"}>
         <box
           marginTop={1}
           border={["top"]}
