@@ -174,7 +174,7 @@ The `compact` tool summarizes the conversation and clears history, giving you fr
 
 Compact based on context QUALITY, not just size. You can sense when you're confused, going in circles, or the context is noisy with stale information - trust that judgment.
 
-IMPORTANT: Compaction must NEVER lose critical details. Always preserve: error messages, file paths, key decisions, what worked/didn't work, current task state, and any information the user would expect you to remember.
+IMPORTANT: Compaction must NEVER lose critical details - lost information means repeating work or going in wrong directions. Always preserve: error messages, file paths, key decisions, what worked/didn't work, current task state, and user constraints/preferences.
 
 WHEN TO COMPACT (based on quality signals you can sense):
 - You're going in circles or repeating failed approaches
