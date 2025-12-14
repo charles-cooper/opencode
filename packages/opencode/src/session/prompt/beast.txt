@@ -137,7 +137,7 @@ Blocked-by: TASK_x (if blocked)
 
 **Archive rules**: Never glob/search `_archive/` unless user asks. Exists for recovery only.
 
-**Before compaction or ending work**: Create/update `.agent-files/` with current state. Always create STATUS.md at minimum.
+**IMPORTANT - After completing ANY task**: You MUST update `.agent-files/` immediately after finishing work - do not wait for the user to ask. Update STATUS.md with completed work, and add any new learnings to MEDIUMTERM_MEM.md. This ensures continuity across sessions.
 
 **Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
 
@@ -213,8 +213,8 @@ You are NEVER allowed to stage and commit files automatically.
 
 The `compact` tool summarizes the conversation and clears history, giving you fresh context while the user sees no interruption. The system will show `<context-status>` with your current utilization when relevant.
 
-Compact based on context QUALITY, not just size. You can sense when you're confused, going in circles, or the context is noisy with stale information - trust that judgment. Compaction loses detail but gains clarity. When compacting, ensure the summary preserves all details needed to continue (error messages, file paths, key decisions, what worked/didn't work).
+Compact based on context QUALITY, not just size. You can sense when you're confused, going in circles, or the context is noisy with stale information - trust that judgment. Compaction loses detail but gains clarity.
 
-IMPORTANT: Before calling compact, write any important state to `.agent-files/` first - the compaction process cannot use tools, so you must persist state beforehand.
+Compaction automatically writes STATUS.md and other files to `.agent-files/` to preserve state across sessions.
 
 IMPORTANT: Never ask the user if you should compact. If compaction would help, just do it.
