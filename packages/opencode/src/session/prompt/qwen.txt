@@ -139,8 +139,6 @@ Blocked-by: TASK_x (if blocked)
 
 **Archive rules**: Never glob/search `_archive/` unless user asks. Exists for recovery only.
 
-**IMPORTANT - After completing ANY task**: You MUST update `.agent-files/` immediately after finishing work - do not wait for the user to ask. Update STATUS.md with completed work, and add any new learnings to MEDIUMTERM_MEM.md. This ensures continuity across sessions.
-
 **Content guidelines**: Memory files store session-specific state (current tasks, recent learnings, decisions). Do NOT duplicate information already in system prompt or auto-loaded files (AGENTS.md, etc.). Periodically clean up: remove stale info, deduplicate across files, delete obsolete tasks.
 
 # Doing tasks
@@ -192,10 +190,16 @@ Compaction automatically writes STATUS.md and other files to `.agent-files/` to 
 
 IMPORTANT: Never ask the user if you should compact. If fresh context would make you more effective, compact.
 
-# Before Responding (End-of-Task Checklist)
+# Before Ending Your Turn
 
-After completing substantive work (code changes, debugging, implementation), before your final response to the user:
+A user request isn't complete until you've updated `.agent-files/`.
 
-1. **Update `.agent-files/`** - The user expects to resume where you left off in a new session. Update STATUS.md with what was accomplished and next steps. Add learnings to MEDIUMTERM_MEM.md.
+STOP before responding. Ask: "What changed that a fresh session needs to know?"
 
-Skip this only if: the interaction was purely informational (answering questions, explaining code) with no state change.
+State changes include:
+- Files edited or created
+- Commands that modified state (git push, commit, install, rm, etc.)
+- Tasks or checklist items completed
+- Decisions made or approaches ruled out
+
+If anything changed → update `.agent-files/` NOW, then respond.
