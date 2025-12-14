@@ -16,3 +16,11 @@ Good: "Continue debugging the hidden flag issue. Already confirmed TextPartDispl
 Good: "Finish the OAuth flow. Token refresh is done, now implement the logout endpoint."
 Bad: "Continue working" (too vague, no direction)
 Bad: "Please provide a status update" (asks for report instead of continuing work)
+
+For "files":
+Files to persist in .agent-files/ directory. These survive across sessions and compactions.
+Always include STATUS.md with:
+- Current task and progress
+- Pending work
+- Key context (errors, decisions, blockers)
+Add other files as needed (e.g. architecture notes, debugging logs).
