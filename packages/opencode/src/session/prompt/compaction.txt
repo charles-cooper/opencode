@@ -9,4 +9,4 @@ For "summary":
 - Any debugging context (what was tried, what worked/didn't work)
 
 For "continue":
-Write a brief instruction that tells the assistant to continue working. This will be injected as a synthetic user message. Keep it short and action-oriented - just tell the assistant to proceed with the next step, don't ask for a status report. Example: "Continue with the implementation" or "Proceed to fix the remaining type errors".
+Write 3-7 words telling the assistant to continue. Examples: "Continue implementing the feature", "Keep debugging the issue", "Proceed with testing". Do NOT include task lists, bullet points, or details - those belong in the summary.

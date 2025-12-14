@@ -174,4 +174,6 @@ The `compact` tool summarizes the conversation and clears history, giving you fr
 
 Compact based on context QUALITY, not just size. You can sense when you're confused, going in circles, or the context is noisy with stale information - trust that judgment. Compaction loses detail but gains clarity. When compacting, ensure the summary preserves all details needed to continue (error messages, file paths, key decisions, what worked/didn't work).
 
+IMPORTANT: Before calling compact, write any important state to `.agent-files/` first - the compaction process cannot use tools, so you must persist state beforehand.
+
 IMPORTANT: Never ask the user if you should compact. If compaction would help, just do it.
