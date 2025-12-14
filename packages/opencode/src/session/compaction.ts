@@ -86,11 +86,15 @@ export namespace SessionCompaction {
   }
 
   const CompactionSchema = z.object({
-    summary: z.string().describe("What was done, files modified, key decisions, user constraints"),
+    summary: z
+      .string()
+      .describe(
+        "Comprehensive handoff: files changed, decisions, errors, user preferences, implementation details. Include everything needed to continue.",
+      ),
     continue: z
       .string()
       .describe(
-        "Brief instruction to continue working (e.g. 'Continue with the implementation'). Do NOT list tasks or ask for status - just tell the assistant to proceed.",
+        "Focused instruction for immediate next steps. Include task and current direction (what's been tried/ruled out, what approach to take). This becomes the user message that resumes work.",
       ),
   })
 
@@ -204,7 +208,7 @@ export namespace SessionCompaction {
       msg.time.completed = Date.now()
       await Session.updateMessage(msg)
 
-      // Create text part for UI display
+      // Create text part for logs (hidden from UI)
       const displayText = `## Summary\n${result.object.summary}\n\n## Continue\n${result.object.continue}`
       await Session.updatePart({
         id: Identifier.ascending("part"),
@@ -212,6 +216,7 @@ export namespace SessionCompaction {
         sessionID: input.sessionID,
         type: "text",
         text: displayText,
+        hidden: true,
         time: {
           start: msg.time.created,
           end: Date.now(),
