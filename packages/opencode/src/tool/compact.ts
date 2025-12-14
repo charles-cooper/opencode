@@ -6,19 +6,23 @@ import { Session } from "../session"
 export const CompactTool = Tool.define("compact", {
   description: `Trigger context compaction to free up context window space. Compaction summarizes the conversation, clears history, and continues seamlessly - the user sees no interruption but you get fresh context.
 
+BE AGGRESSIVE with compaction - use it early and often. After 3-5 turns, if ANY of the following apply, compact immediately:
+
 Use this tool when:
-1. Phase transition (design to implementation or vice versa)
-2. Artifact capture (wrote doc/code that captures discussion)
-3. Long conversation with many tool calls AND about to load significant new content
-4. Natural breakpoint (completed unit of work, starting something different)
-5. Going in circles (repeating attempts, stuck in debug loop)
+1. Exploration phase complete (read files, searched code, gathered context) - compact before implementation
+2. Implementation done - compact before testing/verification
+3. Any tool output over 100 lines that you've already processed
+4. Failed attempts or errors you've already learned from
+5. Phase transition (design to implementation or vice versa)
+6. Going in circles (repeating attempts, stuck in debug loop)
+7. Large file contents, search results, or command outputs polluting context
 
 Do NOT compact when:
-1. Mid-decision or mid-implementation
-2. Open questions or unresolved ambiguity
-3. Short conversation with no phase transition
+1. Mid-implementation of a specific change
+2. Unresolved error you're actively debugging
+3. Under 3 turns in the conversation
 
-Principle: Compact when value is crystallized into artifacts and you need context for something different.`,
+Principle: Context is precious. Compact aggressively once information is processed - but ensure the summary captures all details needed to continue (error messages, file paths, code patterns, what worked/didn't work).`,
   parameters: z.object({
     reason: z.string().describe("Why compaction would help at this point"),
   }),

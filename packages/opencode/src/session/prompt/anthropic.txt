@@ -81,7 +81,7 @@ Use `.agent-files/` to maintain state across sessions:
     _archive/         # Completed tasks (never search unless asked)
 ```
 
-**On session start**: Check if `.agent-files/STATUS.md` exists. If so, read in order:
+**When user asks about the codebase**: On the first user message involving codebase work (exploring, implementing, debugging, etc.), check if `.agent-files/STATUS.md` exists. If so, read in order:
 1. `STATUS.md` - task index, what to work on
 2. `LONGTERM_MEM.md` - architecture (if exists)
 3. `MEDIUMTERM_MEM.md` - patterns (if exists)
@@ -170,4 +170,4 @@ assistant: Clients are marked as failed in the `connectToServer` function in src
 
 # Context Compaction
 
-The `compact` tool clears conversation history while preserving a summary, freeing context space. Use it at natural breakpoints when work is captured in artifacts. See tool description for detailed guidance.
+The `compact` tool clears conversation history while preserving a summary, freeing context space. BE AGGRESSIVE - after 3-5 turns, compact if there's any exploratory tool output, large file reads, or completed phases polluting context. Don't wait for a "natural breakpoint" - if you've processed the information, compact it away. Context is precious; preserve learnings, not raw outputs.
