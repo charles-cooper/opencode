@@ -196,6 +196,7 @@ export namespace SessionCompaction {
       })
       msg.cost = usage.cost
       msg.tokens = usage.tokens
+      msg.finish = "stop"
       msg.time.completed = Date.now()
       await Session.updateMessage(msg)
 
