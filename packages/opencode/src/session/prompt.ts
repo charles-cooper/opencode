@@ -1231,7 +1231,7 @@ export namespace SessionPrompt {
           messageID: userMessage.info.id,
           sessionID: userMessage.info.sessionID,
           type: "text",
-          text: `<context-status>${percent}% of context window used (${usedK}k/${capacityK}k tokens)${compactionNudge}${selfCheckNudge}</context-status>`,
+          text: `<context-status>${percent}% of context window used (${usedK}k/${capacityK}k tokens)${compactionNudge}</context-status>${selfCheckNudge}`,
           synthetic: true,
         })
       }
