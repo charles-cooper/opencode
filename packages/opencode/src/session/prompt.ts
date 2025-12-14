@@ -1144,19 +1144,19 @@ export namespace SessionPrompt {
       return "\n\nWARNING: Context at 70%. Compact soon. Update .agent-files/ first."
     }
     if (utilization >= 0.6) {
-      return "\n\nContext at 60%. Compact now if you've completed a task phase."
+      return "\n\nContext at 60%. Compact now if you've completed a task phase. Keep .agent-files/ current."
     }
     if (utilization >= 0.5) {
-      return "\n\nContext at 50%. Good time to compact at next natural breakpoint."
+      return "\n\nContext at 50%. Good time to compact at next breakpoint. Update .agent-files/ if state changed."
     }
     if (utilization >= 0.4) {
-      return "\n\nContext at 40%. Consider compacting if you've finished a unit of work."
+      return "\n\nContext at 40%. Consider compacting if finished a unit of work. Keep .agent-files/ updated."
     }
     if (utilization >= 0.3) {
-      return "\n\nContext at 30%. Compaction is cheap - consider it at any natural breakpoint."
+      return "\n\nContext at 30%. Compaction is cheap - consider it at breakpoints. Update .agent-files/ as you go."
     }
     if (utilization >= 0.2) {
-      return "\n\nContext at 20%. Compaction is cheap with caching - don't hesitate to compact at breakpoints."
+      return "\n\nContext at 20%. Compaction is cheap with caching. Keep .agent-files/ updated as you work."
     }
     return ""
   }
