@@ -18,7 +18,7 @@ Use this tool when:
 7. Large file contents, search results, or command outputs polluting context
 
 Do NOT compact when:
-1. Mid-edit of a single file (finish the edit first)
+1. Mid-edit or mid-tool use (finish the edit or tool use first)
 2. Unresolved error you're actively debugging
 3. Under 3 turns in the conversation
 
