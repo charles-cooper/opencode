@@ -449,6 +449,8 @@ export namespace SessionPrompt {
       msgs = insertReminders({
         messages: msgs,
         agent,
+        lastFinished,
+        model,
       })
       const processor = SessionProcessor.create({
         assistantMessage: (await Session.updateMessage({
@@ -654,7 +656,8 @@ export namespace SessionPrompt {
       if (result === "stop") break
       continue
     }
-    SessionCompaction.prune({ sessionID })
+    // Pruning disabled - model has better semantic understanding of what's important
+    // SessionCompaction.prune({ sessionID })
     for await (const item of MessageV2.stream(sessionID)) {
       if (item.info.role === "user") continue
       const queued = state()[sessionID]?.callbacks ?? []
@@ -1132,9 +1135,38 @@ export namespace SessionPrompt {
     }
   }
 
-  function insertReminders(input: { messages: MessageV2.WithParts[]; agent: Agent.Info }) {
+  function insertReminders(input: {
+    messages: MessageV2.WithParts[]
+    agent: Agent.Info
+    lastFinished?: MessageV2.Assistant
+    model: Provider.Model
+  }) {
     const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
     if (!userMessage) return input.messages
+
+    // Add context utilization status when > 15%
+    if (input.lastFinished && input.model.limit.context > 0) {
+      const tokens = input.lastFinished.tokens
+      const used = tokens.input + tokens.cache.read + tokens.cache.write + tokens.output
+      const capacity = input.model.limit.context
+      const utilization = used / capacity
+
+      if (utilization > 0.15) {
+        const percent = Math.round(utilization * 100)
+        const usedK = Math.round(used / 1000)
+        const capacityK = Math.round(capacity / 1000)
+
+        userMessage.parts.push({
+          id: Identifier.ascending("part"),
+          messageID: userMessage.info.id,
+          sessionID: userMessage.info.sessionID,
+          type: "text",
+          text: `<context-status>${percent}% of context window used (${usedK}k/${capacityK}k tokens)</context-status>`,
+          synthetic: true,
+        })
+      }
+    }
+
     if (input.agent.name === "plan") {
       userMessage.parts.push({
         id: Identifier.ascending("part"),
