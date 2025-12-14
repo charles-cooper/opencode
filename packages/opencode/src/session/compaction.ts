@@ -87,7 +87,11 @@ export namespace SessionCompaction {
 
   const CompactionSchema = z.object({
     summary: z.string().describe("What was done, files modified, key decisions, user constraints"),
-    continue: z.string().describe("Specific next steps, context for continuation, pending tasks, relevant files"),
+    continue: z
+      .string()
+      .describe(
+        "Brief instruction to continue working (e.g. 'Continue with the implementation'). Do NOT list tasks or ask for status - just tell the assistant to proceed.",
+      ),
   })
 
   export async function process(input: {
