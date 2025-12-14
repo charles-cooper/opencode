@@ -375,6 +375,20 @@ export function Session() {
       },
     },
     {
+      title: "Update memory",
+      value: "session.update-memory",
+      category: "Session",
+      onSelect: (dialog) => {
+        prompt.set({
+          input:
+            "Update .agent-files/ now. Review what changed this session and update STATUS.md, any active TASK_*.md files, and MEDIUMTERM_MEM.md/LONGTERM_MEM.md if there are lasting learnings. Be thorough.",
+          parts: [],
+        })
+        dialog.clear()
+        command.trigger("prompt.submit")
+      },
+    },
+    {
       title: "Undo previous message",
       value: "session.undo",
       keybind: "messages_undo",
