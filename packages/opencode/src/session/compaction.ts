@@ -105,6 +105,8 @@ export namespace SessionCompaction {
           content: z.string().describe("Full file content"),
         }),
       )
+      .optional()
+      .default([])
       .describe(
         "Files to write to .agent-files/ directory. Always include STATUS.md with current state. Add other files as needed for context that should persist across sessions.",
       ),
