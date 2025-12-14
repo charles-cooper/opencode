@@ -1098,7 +1098,9 @@ function UserMessage(props: {
           <box marginTop={1} border={["top"]} titleAlignment="center" borderColor={theme.borderActive}>
             <box flexDirection="row" gap={1} justifyContent="center" paddingTop={1} paddingBottom={1}>
               <spinner frames={spinnerFrames} interval={80} color={theme.borderActive} />
-              <text fg={theme.textMuted}>Auto-optimizing context...</text>
+              <text fg={theme.textMuted}>
+                {compaction()?.trigger === "overflow" ? "Auto-optimizing context..." : "Optimizing context..."}
+              </text>
             </box>
           </box>
         </Show>
