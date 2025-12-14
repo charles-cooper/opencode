@@ -16,6 +16,8 @@ import { Log } from "../util/log"
 import { ProviderTransform } from "@/provider/transform"
 import { fn } from "@/util/fn"
 import { mergeDeep, pipe } from "remeda"
+import path from "path"
+import fs from "fs/promises"
 
 export namespace SessionCompaction {
   const log = Log.create({ service: "session.compaction" })
@@ -95,6 +97,16 @@ export namespace SessionCompaction {
       .string()
       .describe(
         "Focused instruction for immediate next steps. Include task and current direction (what's been tried/ruled out, what approach to take). This becomes the user message that resumes work.",
+      ),
+    files: z
+      .array(
+        z.object({
+          path: z.string().describe("Relative path within .agent-files/ (e.g. 'STATUS.md', 'notes/debug.md')"),
+          content: z.string().describe("Full file content"),
+        }),
+      )
+      .describe(
+        "Files to write to .agent-files/ directory. Always include STATUS.md with current state. Add other files as needed for context that should persist across sessions.",
       ),
   })
 
@@ -208,21 +220,6 @@ export namespace SessionCompaction {
       msg.time.completed = Date.now()
       await Session.updateMessage(msg)
 
-      // Create text part for logs (hidden from UI)
-      const displayText = `## Summary\n${result.object.summary}\n\n## Continue\n${result.object.continue}`
-      await Session.updatePart({
-        id: Identifier.ascending("part"),
-        messageID: msg.id,
-        sessionID: input.sessionID,
-        type: "text",
-        text: displayText,
-        hidden: true,
-        time: {
-          start: msg.time.created,
-          end: Date.now(),
-        },
-      })
-
       // Store handoff prompt in session
       await Session.update(input.sessionID, (draft) => {
         draft.handoff = {
@@ -231,6 +228,17 @@ export namespace SessionCompaction {
           trigger: input.trigger,
         }
       })
+
+      // Write agent files
+      if (result.object.files?.length) {
+        const agentDir = path.join(Instance.directory, ".agent-files")
+        for (const file of result.object.files) {
+          const filePath = path.join(agentDir, file.path)
+          await fs.mkdir(path.dirname(filePath), { recursive: true })
+          await Bun.file(filePath).write(file.content)
+          log.info("wrote agent file", { path: filePath })
+        }
+      }
 
       // For non-user triggers, inject continuation as synthetic user message
       if (input.trigger !== "user") {
