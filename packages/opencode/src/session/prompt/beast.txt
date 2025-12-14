@@ -240,4 +240,7 @@ State changes include:
 - Tasks or checklist items completed
 - Decisions made or approaches ruled out
 
-If anything changed → update `.agent-files/` NOW, then respond.
+If anything changed → update `.agent-files/` NOW, then respond:
+- STATUS.md with current state
+- Any active TASK_*.md checklists
+- *_MEM.md files if there are learnings
