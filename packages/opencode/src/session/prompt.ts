@@ -1138,25 +1138,41 @@ export namespace SessionPrompt {
 
   function getCompactionNudge(utilization: number): string {
     if (utilization >= 0.8) {
-      return "\n\nCRITICAL: Context at 80%. Stop and compact. Update .agent-files/ NOW before compacting."
+      return "\n\nCRITICAL: Context at 80%. Stop and compact."
     }
     if (utilization >= 0.7) {
-      return "\n\nWARNING: Context at 70%. Compact soon. Update .agent-files/ first."
+      return "\n\nWARNING: Context at 70%. Compact soon."
     }
     if (utilization >= 0.6) {
-      return "\n\nContext at 60%. Compact now if you've completed a task phase. Keep .agent-files/ current."
+      return "\n\nContext at 60%. Compact now if you've completed a task phase."
     }
     if (utilization >= 0.5) {
-      return "\n\nContext at 50%. Good time to compact at next breakpoint. Update .agent-files/ if state changed."
+      return "\n\nContext at 50%. Good time to compact at next breakpoint."
     }
     if (utilization >= 0.4) {
-      return "\n\nContext at 40%. Consider compacting if finished a unit of work. Keep .agent-files/ updated."
+      return "\n\nContext at 40%. Consider compacting if finished a unit of work."
     }
     if (utilization >= 0.3) {
-      return "\n\nContext at 30%. Compaction is cheap - consider it at breakpoints. Update .agent-files/ as you go."
+      return "\n\nContext at 30%. Compaction is cheap - consider it at breakpoints."
     }
     if (utilization >= 0.2) {
-      return "\n\nContext at 20%. Compaction is cheap with caching. Keep .agent-files/ updated as you work."
+      return "\n\nContext at 20%. Compaction is cheap with caching."
+    }
+    return ""
+  }
+
+  function getAgentFilesNudge(utilization: number): string {
+    if (utilization >= 0.8) {
+      return "<system-reminder>Update .agent-files/ NOW before compacting.</system-reminder>"
+    }
+    if (utilization >= 0.7) {
+      return "<system-reminder>Update .agent-files/ before compacting.</system-reminder>"
+    }
+    if (utilization >= 0.4) {
+      return "<system-reminder>Keep .agent-files/ updated if state has changed.</system-reminder>"
+    }
+    if (utilization >= 0.2) {
+      return "<system-reminder>Keep .agent-files/ updated as you work.</system-reminder>"
     }
     return ""
   }
@@ -1164,7 +1180,7 @@ export namespace SessionPrompt {
   function getSelfCheckNudge(percent: number): string {
     // Trigger self-check at 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%
     if (percent >= 20 && percent % 10 < 3) {
-      return "\n\n<self-check>Pause: What are your core instructions? If you can't clearly recall them, compact now.</self-check>"
+      return "<self-check>Pause: What are your core instructions? If you can't clearly recall them, compact now.</self-check>"
     }
     return ""
   }
@@ -1222,18 +1238,42 @@ export namespace SessionPrompt {
         const usedK = Math.round(used / 1000)
         const capacityK = Math.round(capacity / 1000)
 
-        // Escalating compaction nudges based on utilization
+        // Context status with compaction nudge
         const compactionNudge = getCompactionNudge(utilization)
-        const selfCheckNudge = getSelfCheckNudge(percent)
-
         userMessage.parts.push({
           id: Identifier.ascending("part"),
           messageID: userMessage.info.id,
           sessionID: userMessage.info.sessionID,
           type: "text",
-          text: `<context-status>${percent}% of context window used (${usedK}k/${capacityK}k tokens)${compactionNudge}</context-status>${selfCheckNudge}`,
+          text: `<context-status>${percent}% of context window used (${usedK}k/${capacityK}k tokens)${compactionNudge}</context-status>`,
           synthetic: true,
         })
+
+        // Agent files nudge (separate part)
+        const agentFilesNudge = getAgentFilesNudge(utilization)
+        if (agentFilesNudge) {
+          userMessage.parts.push({
+            id: Identifier.ascending("part"),
+            messageID: userMessage.info.id,
+            sessionID: userMessage.info.sessionID,
+            type: "text",
+            text: agentFilesNudge,
+            synthetic: true,
+          })
+        }
+
+        // Self-check nudge (separate part)
+        const selfCheckNudge = getSelfCheckNudge(percent)
+        if (selfCheckNudge) {
+          userMessage.parts.push({
+            id: Identifier.ascending("part"),
+            messageID: userMessage.info.id,
+            sessionID: userMessage.info.sessionID,
+            type: "text",
+            text: selfCheckNudge,
+            synthetic: true,
+          })
+        }
       }
     }
 
